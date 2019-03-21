@@ -1,0 +1,44 @@
+\chapter{Security of IPC}
+\label{sec:securityOfIPC}
+
+\section{Attack Vectors agains Host-only Applications}
+\label{sec:hostOnlyAttackVectors}
+As discussed in~\ref{sec:networkedIPCSecurity}, networked IPC is innately insecure.  Therefore, any application that uses the internet must take precautions to keep communication secure.  However, applications that do not use the internet, host-only applications, have their own sets of attack vectors.  The two most vulnerable attack vectors are memory leaks and local communication channels.
+
+\subsection{Memory Leaks}
+\label{sec:memoryLeaks}
+Memory leaks occur when a process does not flush memory and leaves confidential information dereferenced in memory.  For example, if a password manager is in use, it will likely store passwords in memory.  Once the user finishes using the password manager and locks it, the passwords in memory will be freed as the process is cleaned up.  However, if the password manager does not scrub memory, for example by using `strcpy' to replace the memory with 0s, then the next process to be given that area of memory could read the passwords.
+
+This situation is not just a hypothetical.  This year, it has been found that five common password managers, including 1Password and LastPass, fail to adequately scrub memory before it is freed~\cite{independent_security_evaluators_2019}.  While there are limits to what a password manager can do to keep passwords secure, the applications researched failed to reach them.  The password that is being requested by a user must be in memory in plaintext while in use so that the client process is able to use it, but the password manager should scrub this region of memory immediately after the password is taken.  However, applications like KeePass and LastPass fail to scrub any password after they are accessed the first time, leaving them in memory in plaintext, even after the password manager is locked.  Of even greater concern, 1Password 7 puts all passwords into plaintext in memory when the password manager is unlocked, along with the master password.  An attacker who is able to read arbitrary memory would be able to find all of a user's password manager.  These password managers, along with all applications that handle confidential information, should strive to scrub memory regions immediately when they are no longer needed to minimize the risk of data leaks.
+
+This concept of scrubbing memory as soon as possible is not new.  It was outlined in 2005 under the term ``secure deallocation''~\cite{chow2005shredding}.  Secure deallocation means that memory is scrubbed as soon as all processes are finished using it.  At the time of this paper's publication, the lifetime of data was commonly from first write until the next time that data was written in the same location, regardless of whether a new process owned the data.  The secure deallocation timeframe defines data living in memory from first write until it is explicitly freed, showing that it is no longer needed.  The ideal lifetime would be from first write until last read, however this would be impossible for an operating system to know when the last read will be.  By using secure deallocation, the operating system would be able to automatically scrub data as it is being freed, minimizing the time when confidential information is living in memory.
+
+\subsection{Communication Channels}
+\label{sec:communicationChannels}
+SHOULD I SUMMARIZE THE EARLIER SECTION IN INTRO ABOUT INSECURITY OF LOCAL IPC?  I DON'T WANT TO BE REPETITIVE
+
+\subsection{Other Attack Vectors}
+\label{sec:otherAttackVectors}
+THIS SECTION IS ON MY LIST FOR NEEDING MORE SOURCES
+
+\section{Input Management and Parsing}
+\label{sec:inputManagement}
+When attacking an application, hackers often craft an input that executes the program in a way that the creators did not intend.  This input may take advantage of lapses in the parsing algorithm of the vulnerable program.  Parsing, or input management, is the way that a program decides whether input is correctly formatted, and if so, how to deal with it.  For example, part of a compiler will be a parser that checks through the code to make sure that the programming language syntax is correct, such as balanced parentheses and semicolons at the end of lines.  If there is a bug in the parser, then invalid input will be allowed into the program, possibly turning a small bug into an exploitable vulnerability.  This invalid input can follow execution paths that were unintended to occur by the program and possibly take the program into a state that was not supposed to occur.
+
+Therefore, if a programmer is able to create a provably perfect parser, then he or she will be able to remove the possibility of a large class of vulnerabilities: input--based vulnerabilities.  These will be discussed more in-depth in the next section, Section~\ref{inputBasedVulnerabilities}.  The difficulty in creating a perfect parser largely depends on the complexity of the input being given.  If the input language is too complex, then it will be impossible to prove that a parser is perfect.
+
+To break down the problem more, we will call the set of all possible, valid inputs the input language.  For a parser to be correct, for any given string, the parser must correctly decide whether the string should be accepted or rejected.  If the string is accepted, then it is in the input language.  Otherwise, it is not.  If the input language is regular or context-free, then we can prove whether or not the parser accepts exactly the input language.  If so, then we have created a perfect parser for our input language.  In this case, we could place the parser at the beginning of the program, so that any input immediately goes through the parser.  Accepted strings would be sent to the program to run, while rejected strings would cause the program to end immediately, without the input ever reaching the actual program logic.  With a perfect parser, we can guarantee that only valid input reaches the application and would be able to prevent input--based vulnerabilities.
+
+However, many input languages were not designed with this in mind, so the langauge is at least recursive.  Because of this, being able to prove that a parser only accepts the input language is an undecidable problem.  This is not necessarily because a specific input language needs to be recursive, but more because programmers do not explicitly think about the difficulty that the problem of parsing represents.
+
+To combat this idea, a design philosophy called Language Theoretic Security, LangSec, has become more risen in popularity.  LangSec follows the idea that the code that decides whether input is valid should be separate from the application code that processes the input~\cite{langsec_language-theoretic_security}.  In a LangSec-compliant program, once the application process receives the input, it knows the exact form that the input will follow, without exceptions, and therefore can operate without any need to check for input correctness.  This helps to make the processing code cleaner since there will be no need for ad-hoc validity checks.  More importantly, the application will be much safer since the program will be safe from a large class of exploits.
+
+THERE ARE MORE CITATIONS THAT I'VE FOUND THAT I HAVEN'T WRITTEN ABOUT HERE YET.
+
+\section{Input-Based Vulnerabilities}
+\label{sec:inputBasedVulnerabilities}
+I'M SORRY I DID NOT GET TO WRITING THIS SECTION YET.  I'm still planning on following the outline so far, and discussing what they look like and their effects, and also how being in a system call is even worse.  Then going through some examples, such as heartbleed, buffer overflow in libpng 1.2.5, and SQL injection.
+
+\section{Fuzzing}
+\label{sec:fuzzing}
+One way to go about finding input-based vulnerabilities is called fuzzing.  Fuzzing is the process of sending random, semi-random, or unexpected input to a process~\cite[21--22]{fuzzing}.  The goal is to find inputs that cause the application to hang, crash, or otherwise behave unexpectedly.  This could represent a bug in the parsing code, where some aspect of the input is not being handled correctly and is causing problems downstream in the application.  Often, developers will fuzz their own applications before shipping to find and eliminate as many bugs as possible.  However, fuzzing can be done by third-parties as well, either to improve the software or find bugs to exploit.  This type of fuzzing is more difficult since it is impossible to ensure that every execution path has been covered without the source code~\cite{godefroid2012sage}.
