@@ -13,3 +13,6 @@ thesis.pdf: thesis.tex introduction.tex alice-in-wonderland.tex appendix-1.tex
 clean:
 	rm -f *.{dvi,ps,log,aux,bbl,blg,lof,lot,toc}
 
+.PHONY: rm
+rm:
+	rm thesis.pdf
