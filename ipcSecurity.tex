@@ -19,10 +19,6 @@ While secure deallocation has a large security benefit, it also has downsides.  
 \label{sec:communicationChannels}
 While memory leaks attack information once it is no longer being used, attacks can also attempt to read or interfere with information while it is being used.  In particular, as discusssed in Sections~\ref{sec:localIPCSecurity} and~\ref{sec:manInMachineAttack}, local communication channels can be vulnerable.  Many common applications, including security-conscious applications such as password managers and security tokens, were vulnerable to client or server impersonation due to weak encrpytion, key-exchange, or other vulnerabilities that could be easily solved.  Additionally, other researchers have been able to use local IPC to break application isolation on both iOS and Mac OS X devices as well as hijack execution of the Android Bluetooth radio to control Bluedroid-connected devices.  These attacks highlight the insecurity associated with local communication channels, even though the data sent will never leave the computer.  It still must be secured as if it will traverse the Internet so as to protect users from local attackers.
 
-\subsection{Other Attack Vectors}
-\label{sec:otherAttackVectors}
-THIS SECTION IS ON MY LIST FOR NEEDING MORE SOURCES
-
 \section{Input Management and Parsing}
 \label{sec:inputManagement}
 All applications must handle input, and this determines the application's behavior.  This input can come in terms of command-line arguments, such as what file the \texttt{cat} program should print the contents of, to mouse clicks that a web browser must translate into action.  This input can also be text-based, such as a website letting a user input a term to filter data by or filling in an online form with personal information.
