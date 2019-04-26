@@ -1,0 +1,47 @@
+\chapter{Code Samples}
+\label{sec:codeSamples}
+This appendix contains samples of code to use the three forms of local IPC that I studied in my thesis.  There are examples of reading from and writing to a named pipe, communicating through TCP and UDP over the loopback interface, and using stream- and datagram-based UNIX domain sockets.
+
+\section{Writing to a Named Pipe}
+\label{appendix:namedPipeWrite}
+\lstinputlisting{pipeWriter.c}
+
+\section{Reading from a Named Pipe}
+\label{appendix:namedPipeRead}
+\lstinputlisting{pipeReader.c}
+
+\section{Loopback Interface TCP Server}
+\label{appendix:loopbackTcpServer}
+\lstinputlisting{streamLocalhostServer.c}
+
+\section{Loopback Interface TCP Client}
+\label{appendix:loopbackTcpClient}
+\lstinputlisting{streamLocalhostClient.c}
+
+\section{Loopback Interface UDP Server}
+\label{appendix:loopbackUdpServer}
+\lstinputlisting{datagramLocalhostServer.c}
+
+\section{Loopback Interface UDP Client}
+\label{appendix:loopbackUdpClient}
+\lstinputlisting{datagramLocalhostClient.c}
+
+\section{UNIX Domain Socket Stream Server}
+\label{appendix:unixStreamServer}
+\lstinputlisting{streamUnixServer.c}
+
+\section{UNIX Domain Socket Stream Client}
+\label{appendix:unixStreamClient}
+\lstinputlisting{streamUnixClient.c}
+
+\section{UNIX Domain Socket Datagram Server}
+\label{appendix:unixDgramServer}
+\lstinputlisting{datagramUnixServer.c}
+
+\section{UNIX Domain Socket Datagram Client}
+\label{appendix:unixDgramClient}
+\lstinputlisting{datagramUnixClient.c}
+
+\section{\texttt{socketpair} UNIX Domain Sockets}
+\label{appendix:unixSocketpair}
+\lstinputlisting{socketpair.c}
