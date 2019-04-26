@@ -1,11 +1,76 @@
 \chapter{Results}
 \label{sec:results}
+This chapter discusses how I took the results of my survey and began to look at the different ways that applications use local IPC, as well as my work testing the security of this communication.
+
+\section{General Results}
+\label{sec:generalResults}
+Based on the results of the survey that I received, I am able to make some general statements about the way that the three types of local IPC that I am studying--named pipes, internet sockets that use the loopback interface, and UNIX domain sockets--are used by applications.  All of this data is reflected in Table~\ref{appendix:allData}.  I received twenty-two responses from the over 250 people that my survey was sent out to, roughly a 9\% response rate.  I was hoping to have more data, but was able to find results, even with the limited responses.
+
+I collected data on the number of anonymous pipes that an application had open to be able to compare to the local IPC methods I studied.  Anonymous pipes were used the most, with many applications having tens, or even hundreds of them open at a time.  While these are used the most, I consider them to be a secure form of local IPC since, similar to \texttt{socketpair} sockets, the process creating one must explicitly give another process access.
+
+The most notable result when looking through my data is how little named pipes are used by applications.  Only three applications used named pipes at all, and all three were applcations created by Adobe.  In the Man-in-the-Machine paper that prompted my topic~\cite{MitMa}, named pipes were one of the two most-common ways that the authors exploited local IPC.  However, all of their named pipe exploits occurred only on Windows computers.  This could imply that they also found few Mac applications that used named pipes or that applications running on Mac and Linux operating systems use UNIX domain sockets instead of named pipes.  Because of the low number of applications that utilized named pipes, I did not study their security, so the rest of this chapter will almost exclusively be about internet sockets and UNIX domain sockets.
+
+Internet sockets using TCP and UDP and connecting over the loopback interface were less commonly used that anonymous pipes.  Only three applications had at least ten TCP or UDP sockets open and listening on the loopback interface at any time.  However, one of those, mDNSResponder, averaged over sixty listening UDP sockets at a time.  Other than this outlier, there was little difference between the number of TCP or UDP sockets open at a time.  This could be due to the low chance that a UDP packet, even though it does not have guaranteed delivery, is dropped in transit, so many applications that may use TCP for networked communication opt for the lower overhead of UDP for local communication.
+
+Finally, UNIX domain sockets are used on average more than named pipes or internet sockets.  Twenty-one applications had at least ten UNIX sockets open at a time, with seven of these having at least thirty-five open on average.  These statistics do not differentiate between named unnamed \texttt{socketpair} UNIX sockets, but from examining the detailed output of my survey, it looks like most UNIX domain sockets are created by the \texttt{socketpair} system call.
 
 \section{Applications}
 \label{sec:applications}
+I decided to look at four different applications: Spotify, Microsoft Visual Studio Code (Code), launchd, and mDNSResponder.  These four applications gave me broad coverage of many factors that I wanted to look into.  Spotify and Code are user programs that use multiple processes to work together.  On the other hand, launchd is a single process that is the first process created at boot time, giving it the process ID of 1.  It is also owned by root, not a normal user.  mDNSResponder is an application that uses two processes, one owned by root and the other owned by the \_mdnsresponder user.
 
-DISCUSS WHAT APPLICATIONS I AM RESEARCHING AND WHY I CHOSE THEM
+These applications also use different forms of local IPC and were open often in my survey.  As stated above, very few applications on OS X use named pipes, so I did not study how applications used FIFOs since they were so rare.  Spotify was being run on over 50\% of surveyed machines, and on average, it had one TCP port and three UDP ports listening on the localhost address.  It also averaged ten UNIX domain sockets open at any time.  Code was run on relatively few machines, just under 10\%, but had two listeing TCP sockets and fourteen UNIX domain sockets, many of them named in the filesystem.  launchd and mDNSResponder were both running on 100\% of computers.  launchd had four local TCP sockets listening, two UDP sockets, and thirty-six UNIX domain sockets open on average.  mDNSResponder had one local TCP socket, sixty-two local UDP sockets, and forty-four UNIX domain sockets.  launchd and mDNSResponder also both had named UNIX sockets, not only \texttt{socketpair} sockets.
 
-MY GOAL IS TO LOOK IN-DEPTH AT THREE APPLICATIONS
+These applications also use local inter-process communication between different users.  For example, Spotify has UNIX domain sockets between its processes, which are owned by a normal user.  However, it also has sockets where the user at the other end is root or \_mdnsresponder.  These differences in endpoint privileges could be the basis for privilege escalation or execution hijacking as root user, and therefore are especially worth studying because of the increased risk.
 
-FOR EACH APPLICATION, TALK ABOUT HOW IT USES LOCAL IPC AND WHAT WE LEARNED WHEN WE FUZZED ITS LOCAL IPC ENDPOINTS
+Next, I will go into more depth on each application, describing its local IPC footprint as well as detailing the steps I took while investigating its security.  This will include fuzzing TCP and UDP endpoints through the loopback interface and UNIX domain sockets.
+
+\section{Spotify}
+\label{sec:spotify}
+Spotify has a broad local IPC footprint.  Each instance of the Spotify application runs two different processes, Spotify and Spotify Helper.  Additionally, a third type of process also is used occasionally, SpotifyWebHelper, but this was only seen on two machines in the survey and I was unable to reproduce it while testing.  When I was testing the Spotify application, it had two TCP sockets listening on any address on ports 57621 and 57819.  It also had three UDP sockets listening on ports 1900, 62152, and 57621.  Finally, it had eleven open UNIX domain socket endpoints.  We will dive into each of these sections deeper.
+
+\subsection{TCP}
+\label{sec:spotifyTcp}
+When the Spotify application runs, it establishes many TCP connections across the Internet to get the music and other data for the user.  However, there are also two TPC sockets that listen on any interface.  One is always on port 57621 while the other is random.  Using Wireshark, I could not find any messages being sent on either of these ports for any instance of Spotify that I have found.
+I'M CURRENTLY FUZZING THESE PORTS
+
+\subsection{UDP}
+\label{sec:spotifyUdp}
+Spotify also has three UDP ports listening on any IP address when it runs.  One is always listening on port 1900 and another is on a random port, different from the port number of the random TCP port.  Like the TCP ports, I was unable to find any communication over these ports.
+ALSO CURRENTLY FUZZING THESE
+
+However, the last UDP port is listening on port 57621.  This port sends a regular message every thirty seconds.  I believe that this is a ``heartbeat'' message sent to the local broadcast address for both the loopback interface and the Wifi radio interface of my computer.  This message could be used as a way to find other instances of Spotify running near, or as a way for some software to see that this instance of Spotify is still running.  The data of each message is always exactly forty-four bytes long, with the first eight bytes reading SpotUdp0.  While the data is different for each instance of Spotify that I run, within an instance, the data is always the same, meaning once I start Spotify, the data sent every thirty seconds will always be exactly the same.  Since I have many examples of these messages, I was able to effectively fuzz this endpoint.
+
+I created a Python program that would send the two pieces of the data section to \textit{radamsa} and use the result to build a new message.  I then sent this new, random message to UDP port 57621 via localhost.  I did this over 500,000 times.  After each message, I checked to see whether Spotify was still running.  None of these random strings caused a crash in Spotify.
+
+\subsection{UNIX Domain Sockets}
+\label{sec:spotifyUnix}
+On each instance of Spotify created during testing, the Spotify application would also have eleven UNIX domain socket endpoints.  These were split among one instance of the Spotify process and two instances of the Spotify Helper process.  Of these eleven endpoints, eight were created using \texttt{socketpair}.  There was one pair within the Spotify process, and another pair between each Spotify Helper process and the Spotify process.  Finally, there was a pair between the two Spotify Helper processes.  Since no other process was given any of these endpoints, there was no way to send any messages or attempt to fuzz these endpoints.  However, there were also three UNIX domain sockets that were connected to named UNIX sockets.  One was connected to a socket owned by both launchd and syslogd.  The security of this communication will be discussed in Section~\ref{sec:launchdUnix}.  The other two were both connected to a socket owned by mDNSResponder.  This will be examined in Section~\ref{sec:mdnsUnix}.
+
+\section{VS Code}
+\label{sec:code}
+VS Code only uses two of the forms of local IPC that I studied: local TCP connections and UNIX domian sockets.  
+
+\subsection{TCP}
+\label{sec:codeTcp}
+
+\subsection{UNIX Domain Sockets}
+\label{sec:codeUnix}
+
+\section{launchd}
+\label{sec:launchd}
+
+\subsection{UDP}
+\label{sec:launchdUdp}
+
+\subsection{UNIX Domain Sockets}
+\label{sec:launchdUnix}
+
+\section{mDNSResponder}
+\label{sec:mdns}
+
+\subsection{UDP}
+\label{sec:mdnsUdp}
+
+\subsection{UNIX Domain Sockets}
+\label{sec:mdnsUnix}
+
