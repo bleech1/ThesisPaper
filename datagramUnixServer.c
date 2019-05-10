@@ -33,7 +33,8 @@ int main(int argc, char *argv[])
     int unlinkVal = unlink(socketPath);
 
     // bind the socket to the pathname
-    int retVal = bind(sockFd, (struct sockaddr*) &addr, sizeof(addr));
+    int size = sizeof(addr);
+    int retVal = bind(sockFd, (struct sockaddr*) &addr, size);
     if (retVal < 0)
     {
         perror("bind");

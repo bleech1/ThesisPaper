@@ -2,7 +2,8 @@
  * datagramLocalhostClient.c
  */
 
-// This program connects to a datagram Internet socket over localhost
+// This program connects to a datagram Internet
+// socket over localhost
 
 #include <sys/socket.h>
 #include <stdio.h>

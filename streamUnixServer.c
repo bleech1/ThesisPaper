@@ -33,7 +33,8 @@ int main(int argc, char *argv[])
     int unlinkVal = unlink(socketPath);
 
     // bind the socket to the pathname
-    int retVal = bind(sockFd, (struct sockaddr*) &addr, sizeof(addr));
+    int size = sizeof(addr);
+    int retVal = bind(sockFd, (struct sockaddr*)&addr, size);
     if (retVal < 0)
     {
         perror("bind");
@@ -52,7 +53,8 @@ int main(int argc, char *argv[])
     char buf[100];
     while (1)
     {
-        // accept each connection and read the first message sent then close
+        // accept each connection and read the first
+        // message sent then close
         int clientFd = accept(sockFd, NULL, NULL);
         if (clientFd < 0)
         {

@@ -2,8 +2,9 @@
  * socketpair.c
  */
 
-// This program creates two UNIX domain sockets using socketpair.  The process
-// forks and the child reads from stdin and sends it to the parent, who prints
+// This program creates two UNIX domain sockets using
+// socketpair.  The process forks and the child reads
+// from stdin and sends it to the parent, who prints
 // the data out.
 
 #include <sys/socket.h>

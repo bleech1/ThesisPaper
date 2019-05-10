@@ -51,7 +51,8 @@ int main(int argc, char *argv[])
     while (1)
     {
         memset(buf, 0, sizeof(buf));
-        // accept each connection and read the first message sent then close
+        // accept each connection and read the first 
+        // message sent then close
         readResult = recvfrom(sockFd, buf, sizeof(buf), 0, NULL, 0);
         if (readResult < 0)
         {

@@ -59,7 +59,8 @@ int main(int argc, char *argv[])
     char buf[100];
     while (1)
     {
-        // accept each connection and read the first message sent then close
+        // accept each connection and read the first
+        // message sent then close
         int clientFd = accept(sockFd, NULL, NULL);
         if (clientFd < 0)
         {

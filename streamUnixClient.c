@@ -29,7 +29,8 @@ int main(int argc, char *argv[])
     strncpy(addr.sun_path, socketPath, sizeof(addr.sun_path)-1);
 
     // connect the socket to the listening socket
-    int retVal = connect(sockFd, (struct sockaddr*) &addr, sizeof(addr));
+    int size = sizeof(addr);
+    int retVal = connect(sockFd, (struct sockaddr*) &addr, size);
     if (retVal < 0)
     {
         perror("connect");

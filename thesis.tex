@@ -5,6 +5,9 @@
 \usepackage{listings}
 \usepackage{changepage}
 \usepackage{longtable}
+\lstset{
+    basicstyle=\linespread{1}\ttfamily,
+}
 
 \bibliographystyle{plain}
 
@@ -19,7 +22,7 @@
 \pagenumbering{roman}
 
 \begin{abstract}
-Local inter-process communication allows processes on the same computer to share data.  However, even though this communication stays within a single computer, best-practices for computer security must still be followed.  In this thesis, I investigate the security of local inter-process communication for four different applications.  I find one bug in parsing input that causes an extension to crash.  Additionally, I can create two Denial-of-Service attacks that prevent a user from opening an application and using the Internet.
+Local inter-process communication allows processes on the same computer to share data.  However, even though this communication stays within a single computer, best practices for computer security must still be followed.  In this thesis, I investigate the security of local inter-process communication for four different applications.  I find one bug in parsing input that causes an extension to crash.  Additionally, I can create two Denial-of-Service attacks that prevent a user from opening an application and using the Internet.
 \end{abstract}
 
 \begin{acknowledgements}
