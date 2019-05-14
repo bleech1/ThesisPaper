@@ -4,7 +4,7 @@ This chapter discusses how I took the results of my survey and began to look at 
 
 \section{General Results}
 \label{sec:generalResults}
-Based on the results of the survey that I received, I am able to make some general statements about the way that the three types of local IPC that I am studying---named pipes, Internet sockets that use the loopback interface, and UNIX domain sockets---are used by applications.  All of this data is reflected in Table~\ref{appendix:allData} and summary information from the survey is in Table~\ref{tab:surveyResults}.  I received twenty-two responses from the over 250 people that my survey was sent out to, roughly a 9\% response rate.  I was hoping to have more data, but was able to find results, even with the limited responses.
+Based on the results of the survey that I received, I am able to make some general statements about the way that the three types of local IPC that I am studying---named pipes, Internet sockets that use the loopback interface, and UNIX domain sockets---are used by applications.  All of this data is reflected in Appendix~\ref{appendix:allData} and summary information from the survey is in Table~\ref{tab:surveyResults}.  I received twenty-two responses from the over 250 people that my survey was sent out to, an 8.5\% response rate.  I was hoping to have more data, but was able to find results, even with the limited responses.
 
 \begin{table}
 \centering
@@ -27,15 +27,15 @@ I collected data on the number of anonymous pipes that an application had open t
 
 The most notable result when looking through my data is how rarely named pipes are used by applications.  Only three applications used named pipes at all, and all three were applications created by Adobe.  In the Man-in-the-Machine paper that prompted my thesis~\cite{MitMa}, named pipes were one of the two most-common ways that the authors exploited local IPC.  However, all of their named pipe exploits occurred only on Windows.  This could imply that they also found few Mac applications that used named pipes or that applications running on Mac and Linux operating systems use UNIX domain sockets instead of named pipes.  Because of the low number of applications that utilized named pipes, I did not study their security, so the rest of this chapter will exclusively be about Internet sockets and UNIX domain sockets.
 
-Internet sockets using TCP and UDP and connecting over the loopback interface were less commonly used that anonymous pipes.  Only three applications had at least ten TCP or UDP sockets open and listening on the loopback interface at any time.  However, one of those, \texttt{mDNSResponder}, averaged over sixty listening UDP sockets at a time.  Other than this outlier, there was little difference between the number of TCP or UDP sockets open at a time.  This could be due to the low chance that a UDP packet, even though it does not have guaranteed delivery, is dropped in transit, so many applications that may use TCP for networked communication opt for the lower overhead of UDP for local communication.
+Internet sockets using TCP and UDP and connecting over the loopback interface were less commonly used than anonymous pipes.  Only three applications had at least ten TCP or UDP sockets open and listening on the loopback interface at any time.  However, one of those, \texttt{mDNSResponder}, averaged over sixty listening UDP sockets at a time.  Other than this outlier, there was little difference between the number of TCP or UDP sockets open at a time.  This could be due to the low chance that a UDP packet, even though it does not have guaranteed delivery, is dropped in transit, so many applications that may use TCP for networked communication opt for the lower overhead of UDP for local communication.
 
 Finally, UNIX domain sockets are used on average more than named pipes or Internet sockets.  Twenty-one applications had at least ten UNIX sockets open at a time, with seven of these having at least thirty-five open on average.  These statistics do not differentiate between named and unnamed \texttt{socketpair} UNIX sockets, but from examining the detailed output of my survey, it looks like most UNIX domain sockets are created by the \texttt{socketpair} system call.
 
 \section{Applications}
 \label{sec:applications}
-I decided to look at four different applications: \texttt{Spotify}, \texttt{Microsoft Visual Studio Code} (\texttt{VS Code}), \texttt{launchd}, and \texttt{mDNSResponder}.  I chose \texttt{Spotify} because it was running on over 50\% of of machines in my survey and it uses a diverse set of local IPC resources including local TCP and UDP Internet sockets and UNIX domain sockets.  \texttt{VS Code} was running on relatively few machines, but has many named UNIX domain sockets which I could both fuzz and attempt server impersonation.  \texttt{launchd} also had many named UNIX domain sockets and, since it boots the computer, is responsible for many system-wide functions that must be kept secure.  Finally, \texttt{mDNSResponder} has a huge number of listening UDP sockets and named UNIX domain socket endpoints which gave me many opportunities to find results.
+I decided to look at four different applications: \texttt{Spotify}, \texttt{Microsoft Visual Studio Code} (\texttt{VS Code}), \texttt{launchd}, and \texttt{mDNSResponder}.  I chose \texttt{Spotify} because it was running on over 50\% of machines in my survey and it uses a diverse set of local IPC resources including local TCP and UDP Internet sockets and UNIX domain sockets.  \texttt{VS Code} was running on relatively few machines, but has many named UNIX domain sockets which I could both fuzz and attempt server impersonation.  \texttt{launchd} also had many named UNIX domain sockets and, since it boots the computer, is responsible for many system-wide functions that must be kept secure.  Finally, \texttt{mDNSResponder} has a huge number of listening UDP sockets and named UNIX domain socket endpoints which gave me many opportunities to find results.
 
-These four applications gave me broad coverage of many factors that I wanted to look into.  \texttt{Spotify} and \texttt{VS Code} are user programs that use multiple processes that work together.  On the other hand, \texttt{launchd} is a single process that is the first process created at boot time, giving it the process ID of 1.  It is also owned by \texttt{root}, not a normal user.  \texttt{mDNSResponder} is another single process but is owned by the \texttt{\_mdnsresponder} user.
+These four applications gave me broad coverage of many factors that I wanted to look into.  \texttt{Spotify} and \texttt{VS Code} are user programs that use multiple processes that work together.  On the other hand, \texttt{launchd} is a single process that is the second process created at boot time, after the kernel, giving it the process ID of 1.  It is also owned by \texttt{root}, not a normal user.  \texttt{mDNSResponder} is another single process but is owned by the \texttt{\_mdnsresponder} user.
 
 \begin{table}
 \centering
@@ -52,7 +52,7 @@ APP NAME & NUM MACHINES & FIFOS & LOCAL TCP(TOTAL) & LOCAL UDP(TOTAL) & UNIX Soc
 \end{scriptsize}
 \end{table} 
 
-These applications also use different forms of local IPC.  Table~\ref{tab:applicationData} shows the distribution of local IPC resources for each.  As stated above, very few applications on OS X use named pipes, so I did not study how applications used FIFOs since they were so rare.  \texttt{Spotify} was being run on over 50\% of surveyed machines, and on average, it had one TCP port and three UDP ports listening on the localhost address.  It also averaged ten UNIX domain sockets open at any time.  \texttt{VS Code} was run on relatively few machines, just under 10\%, but had two listeing TCP sockets and fourteen UNIX domain sockets, many of them named in the filesystem.  \texttt{launchd} and \texttt{mDNSResponder} were both running on 100\% of computers.  \texttt{launchd} had four local TCP sockets listening, two UDP sockets, and thirty-six UNIX domain sockets open on average.  \texttt{mDNSResponder} had one local TCP socket, sixty-two local UDP sockets, and forty-four UNIX domain sockets.  \texttt{launchd} and \texttt{mDNSResponder} also both had named UNIX sockets, not only \texttt{socketpair} sockets.
+These applications also use different forms of local IPC.  Table~\ref{tab:applicationData} shows the distribution of local IPC resources for each.  As stated above, very few applications on OS X use named pipes, so I did not study how applications used FIFOs since they were so rare.  \texttt{Spotify} had on average one TCP port and three UDP ports listening on the localhost address.  It also averaged ten UNIX domain sockets open at any time.  \texttt{VS Code} was running on few machines, just under 10\%, but had two listening TCP sockets and fourteen UNIX domain sockets, many of them named in the filesystem.  \texttt{launchd} and \texttt{mDNSResponder} were both running on 100\% of computers.  \texttt{launchd} had four local TCP sockets listening, two UDP sockets, and thirty-six UNIX domain sockets open on average.  \texttt{mDNSResponder} had one local TCP socket, sixty-two local UDP sockets, and forty-four UNIX domain sockets.  \texttt{launchd} and \texttt{mDNSResponder} also both had named UNIX sockets, not only \texttt{socketpair} sockets.
 
 These applications also use local inter-process communication between processes owned by different users.  For example, \texttt{Spotify} has UNIX domain socket connections between its processes, which are owned by a normal user.  However, it also has sockets where the user at the other end is \texttt{root} or \texttt{\_mdnsresponder}.  These differences in endpoint privileges could be the basis for privilege escalation or execution hijacking as the \texttt{root} user, and therefore are especially worth studying because of the increased risk.
 
@@ -60,7 +60,7 @@ Next, I will go into more depth on each application, describing its local IPC fo
 
 \section{\texttt{Spotify}}
 \label{sec:spotify}
-\texttt{Spotify} has a broad local IPC footprint.  Each instance of the \texttt{Spotify} application runs two different processes, \texttt{Spotify} and \texttt{Spotify Helper}.  Additionally, a third type of process also is used occasionally, \texttt{SpotifyWebHelper}, but this was only seen on two machines in the survey and I was unable to reproduce it while testing.  When I was testing the \texttt{Spotify} application, it had two TCP sockets listening on any address on ports 57621 and 57819.  It also had three UDP sockets listening on ports 1900, 62152 and 57621.  Finally, it had eleven open UNIX domain socket endpoints.  We will dive into each of these categories deeper.
+\texttt{Spotify} has a broad local IPC footprint.  Each instance of the \texttt{Spotify} application runs two different processes, \texttt{Spotify} and \texttt{Spotify Helper}.  Additionally, a third type of process also is used occasionally, \texttt{SpotifyWebHelper}, but this was only seen on two machines in the survey and I was unable to reproduce it while testing.  When I was testing the \texttt{Spotify} application, it had two TCP sockets listening on any address, one on port 57621 and the other on a random port.  It also had three UDP sockets, two listening on ports 1900 and 57621 and the third randomly chosen at application start time.  Finally, it had eleven open UNIX domain socket endpoints.  We will now dive into each of these categories deeper.
 
 \subsection{\texttt{Spotify} UDP}
 \label{sec:spotifyUdp}
@@ -76,13 +76,13 @@ Next, I will go into more depth on each application, describing its local IPC fo
 Random & No & Yes \\ \hline
 \end{tabular}
 \caption{UDP Resources for \texttt{Spotify}}
-\label{tab:spotifyUdp}
+\label{tab:spotifyUdpTab}
 \end{normalsize}
 \end{table} 
 
-However, the last UDP port is listening on port 57621.  This port sends a regular message every thirty seconds.  I believe that this is a ``heartbeat'' message sent to the local broadcast address for both the loopback interface and the Wifi radio interface of my computer.  This message could be used as a way to find other instances of \texttt{Spotify} running nearby, or as a way for some software to see that this instance of \texttt{Spotify} is still running.  The data of each message is always exactly forty-four bytes long, with the first eight bytes reading \texttt{SpotUdp0}.  While the data is different for each instance of \texttt{Spotify} that I run, within an instance, the data is always the same, meaning once I start \texttt{Spotify}, the data sent every thirty seconds will always be exactly the same.  Since I have many examples of these messages, I was able to effectively fuzz this endpoint.
+However, the last UDP port is listening on port 57621.  This port sends a regular message every thirty seconds.  I believe that this is a ``heartbeat'' message since it is sent to the local broadcast address for both the loopback interface and the Wifi radio interface of my computer.  This message could be used as a way to find other instances of \texttt{Spotify} running nearby, or as a way for some software to see that this instance of \texttt{Spotify} is still running.  The data of each message is always exactly forty-four bytes long, with the first eight bytes reading \texttt{SpotUdp0}.  While the data is different for each instance of \texttt{Spotify} that I run, within an instance, the data is always the same, meaning once I start \texttt{Spotify}, the data sent every thirty seconds will always be exactly the same.  Since I have many examples of these messages, I was able to effectively fuzz this endpoint.
 
-I created a Python program that would send the two pieces of the data section to \textit{radamsa} and use the result to build a new message.  I then sent this new, random message to UDP port 57621 via localhost.  I did this over 500,000 times.  After each message, I checked to see whether \texttt{Spotify} was still running.  None of these random strings caused a crash in \texttt{Spotify}.
+I created a Python program that would send the two random pieces of the data section to \textit{radamsa} and use the result to build a new message.  I then sent this new, random message to UDP port 57621 via localhost.  I did this over 500,000 times.  After each message, I checked to see whether \texttt{Spotify} was still running.  None of these random strings caused a crash in \texttt{Spotify}.
 
 Even though I was unable to find any messages to the other two UDP ports, I still fuzzed them using the same messages that I fuzzed port 57621 with.  I fuzzed both of these ports over 500,000 times as well and never crashed \texttt{Spotify}.  I then moved on to the TCP sockets to see if I would be able to find a bug while fuzzing these.
 
@@ -98,11 +98,11 @@ Even though I was unable to find any messages to the other two UDP ports, I stil
 Random & No & No \\ \hline
 \end{tabular}
 \caption{TCP Resources for \texttt{Spotify}}
-\label{tab:SpotifyTcp}
+\label{tab:SpotifyTcpTab}
 \end{normalsize}
 \end{table}
 
-When the \texttt{Spotify} application runs, it establishes many TCP connections across the Internet to get the music and other data for the user.  However, there are also two sockets that listen on any interface; one is always on port 57621 while the other is random.  Using Wireshark, I could not find any messages being sent on either of these ports for any instance of \texttt{Spotify}.
+When the \texttt{Spotify} application runs, it establishes many TCP connections across the Internet to get the music and other data for the user.  However, there are also two sockets that listen on any interface; one is always on port 57621 while the other is random.  Using \textit{Wireshark}, I could not find any messages being sent on either of these ports for any instance of \texttt{Spotify}.
 
 Again, like the last two UDP ports, I still fuzzed these endpoints, even without finding any messages being sent to these ports.  When I fuzzed TCP port 57621 using the UDP heartbeat message, I was unable to cause a crash in \texttt{Spotify}.  However, when I fuzzed the random TCP port, something else happened.  Each time I created a connection, the socket would immediately be closed for me to write.  When I investigated further, whenever I connected to this socket, I immediately received a message stating that the type is Tier1 and the version is 1.0, as shown in Figure~\ref{fig:spotifyTcpResponse}.  Then, the socket would be closed, all before I would be able to send a message.  I am not sure what this message means, but it could be a way for other \texttt{Spotify} processes or applications that interact with \texttt{Spotify} to get version information.  Unfortunately, since the socket was being closed immediately, I was unable to fuzz it.
 
@@ -126,7 +126,7 @@ Again, like the last two UDP ports, I still fuzzed these endpoints, even without
 1 connected to \texttt{launchd} & No & No \\ \hline
 \end{tabular}
 \caption{UNIX Domain Socket Resources for \texttt{Spotify}}
-\label{tab:spotifyTcp}
+\label{tab:spotifyUnixTab}
 \end{normalsize}
 \end{table} 
 
@@ -167,13 +167,13 @@ Random & No & Yes \\ \hline
 Random & No & Yes \\ \hline
 \end{tabular}
 \caption{TCP Resources for \texttt{VS Code}}
-\label{tab:vsCodeTcp}
+\label{tab:vsCodeTcpTab}
 \end{normalsize}
 \end{table}
 
-\texttt{VS Code} averaged two listening TCP ports, according to my survey data.  The ports chosen were always random, so I needed to find the port each time I started a fuzzing session.  When I originally fuzzed these ports with random data, I was always returned the message ``WebSockets request was expected.''  After doing research, I found that this meant that it was looking for an HTTP request.  Therefore, I created an HTTP GET request to get the repository holding the research for this thesis from GitHub and used this as my genuine communication example.
+\texttt{VS Code} averaged two listening TCP ports, according to my survey data.  The ports chosen were always random, so I needed to find the port each time I started a fuzzing session.  When I originally fuzzed these ports with random data, I was always returned the message ``WebSockets request was expected.''  After doing cursory research on Google, I found that this meant that it was looking for an HTTP request.  Therefore, I created an HTTP GET request to get the repository holding the research for this thesis from GitHub and used this as my genuine communication example.
 
-When I used this message to fuzz the \texttt{VS Code} endpoint, the program would end between fifty and one hundred messages into fuzzing because the port had been closed.  Whenever I went back to my open instance of \texttt{VS Code}, my \texttt{VIM} extension no longer worked.  \texttt{VS Code} was no longer using \texttt{VIM} keybindings nor was it using the normal keyboard keys and shortcuts.  This experiment was repeated three times, and each time the \texttt{VIM} extension crashed.  I had crashed this extension.  This finding represents a bug in the way that \texttt{VS Code} parses input to its random TCP ports since it does not correctly handle the input I was sending.  This bug could also constitute a vulnerability, which, if exploitable, could allow an attacker to either hijack execution or disclose personal information.  Therefore, this is a significant finding.
+When I used this message to fuzz the \texttt{VS Code} endpoint, the program would end between fifty and one hundred messages into fuzzing because the port had been closed.  Whenever I went back to my open instance of \texttt{VS Code}, my \texttt{VIM} extension no longer worked.  \texttt{VS Code} was no longer using \texttt{VIM} keybindings nor was it using the normal keyboard keys and shortcuts.  This experiment was repeated three times, and each time the \texttt{VIM} extension crashed.  This finding represents a bug in the way that \texttt{VS Code} parses input to its random TCP ports since it does not correctly handle the input I was sending.  This bug could also constitute a vulnerability, which, if exploitable, could allow an attacker to either hijack execution or disclose personal information.  Therefore, this is a significant finding.
 
 \subsection{\texttt{VS Code} UNIX Domain Sockets}
 \label{sec:codeUnix}
@@ -191,15 +191,15 @@ When I used this message to fuzz the \texttt{VS Code} endpoint, the program woul
 10 connections to other processes & No & No \\ \hline
 \end{tabular}
 \caption{UNIX Domain Socket Resources for \texttt{VS Code}}
-\label{tab:vsCodeTcp}
+\label{tab:vsCodeUnixTab}
 \end{normalsize}
 \end{table} 
 
 In addition to its TCP sockets, \texttt{VS Code} also has many UNIX domain sockets,  four of which are named.  One is named based on the version number and the word `main', hereafter known as the main socket.  One is named off of the version number and the word `shared', known as the shared socket.  The last two are named using either the word `git' or `ipc' and followed by a random suffix; I call these the git and ipc sockets, respectively.  These random socket names were likely created with the \texttt{mktemp} library call or utility to create a name that is guaranteed to be unique in the filesystem.
 
-When fuzzing the main socket, I used a six-byte message as my seed that was sent when the application was being closed.  However, after fuzzing over 500,000 times with variations of this message, \texttt{VS Code} did not crash or function incorrectly.
+When fuzzing the main socket, I used a six-byte message as my seed that I found was sent when the application was being closed.  However, after fuzzing over 500,000 times with variations of this message, \texttt{VS Code} did not crash or function incorrectly.
 
-However, since the name of the main socket does not change, I deleted the socket from the filesystem and created it again myself.  Then, I tried to open \texttt{VS Code}.  I received a message saying that another instance of \texttt{VS Code} was running.  I had created a Denial-of-Service attack by opening the main socket myself.  \texttt{VS Code} must have checked the return value of the bind call, seen that this name in the filesystem was already taken, and decided that an instance was already running.  Since I had created this socket, no other version of \texttt{VS Code} would be able to run without first deleting the socket from the file system and killing any process that had it open or restarting the entire machine.
+However, since the name of the main socket does not change, I deleted the socket from the filesystem and created it again myself.  Then, I tried to open \texttt{VS Code}.  I received a message saying that another instance of \texttt{VS Code} was running.  I had created a Denial-of-Service attack by opening the main socket myself.  \texttt{VS Code} must have checked the return value of the bind call, seen that this name in the filesystem was already taken, and decided that an instance was already running.  Since I had created this socket, no other instance of \texttt{VS Code} would be able to run without first deleting the socket from the file system and killing any process that had it open or restarting the entire machine.
 
 The next socket that I looked at was the shared socket.  By impersonating this socket, I found a forty-five byte message that was sent from a client when \texttt{VS Code} started.  Using this message to fuzz the shared socket, I was unable to cause a crash after 500,000 iterations.
 
@@ -235,7 +235,7 @@ My research, outlined in Table~\ref{tab:codeData}, has shown that \texttt{VS Cod
 
 \section{\texttt{launchd}}
 \label{sec:launchd}
-I chose to text \texttt{launchd} because it is the process that helps boot the machine, as well as starting many services, or daemons.  It is responsible for creating and maintaining many necessary services, such as networking, logging and showing images on the screen.  \texttt{launchd} uses local TCP and UDP sockets, as well as many named UNIX domain sockets.
+I chose to test \texttt{launchd} because it is the process that helps boot the machine, as well as starting many services, or daemons.  It is responsible for creating and maintaining many necessary services, such as networking, logging and showing images on the screen.  \texttt{launchd} uses local TCP and UDP sockets, as well as many named UNIX domain sockets.
 
 \subsection{\texttt{launchd} TCP}
 \label{sec:launchdTcp}
@@ -248,11 +248,11 @@ I chose to text \texttt{launchd} because it is the process that helps boot the m
 Could not replicate & No & No \\ \hline
 \end{tabular}
 \caption{TCP Resources for \texttt{launchd}}
-\label{tab:launchdTcp}
+\label{tab:launchdTcpTab}
 \end{normalsize}
 \end{table} 
 
-My survey results showed that \texttt{launchd} averaged four open TCP sockets at a time.  However, no matter when I tried to find these sockets on my own computer, I was unable to find an open TCP socket that \texttt{launchd} was listening to.  Therefore, since I could not recreate this result, I was unable to fuzz any TCP sockets for \texttt{launchd}.
+My survey results showed that \texttt{launchd} averaged four open TCP sockets at a time.  However, no matter when I tried to find these sockets on my own computer, I was unable to find an open TCP socket that \texttt{launchd} was listening on.  Therefore, since I could not recreate this result, I was unable to fuzz any TCP sockets for \texttt{launchd}.
 
 \subsection{\texttt{launchd} UDP}
 \label{sec:launchdUdp}
@@ -266,7 +266,7 @@ My survey results showed that \texttt{launchd} averaged four open TCP sockets at
 138 & Yes & Yes \\ \hline
 \end{tabular}
 \caption{UDP Resources for \texttt{launchd}}
-\label{tab:launchdUdp}
+\label{tab:launchdUdpTab}
 \end{normalsize}
 \end{table} 
 
@@ -282,18 +282,18 @@ My survey results showed that \texttt{launchd} averaged four open TCP sockets at
 \textbf{Name} & \textbf{Found Messages?} & \textbf{Did I Fuzz?} \\ \hline
 /private//var/run/syslog & No & Yes \\ \hline
 /var/rpc/ncalrpc/NETLOGON & No & Yes \\ \hline
+/var/run/vpncontrol.sock & No & Yes \\ \hline
 /var/run/systemkeychaincheck.socket & No & Yes \\ \hline
 /var/run/portmap.socket & No & Yes \\ \hline
 /var/run/usbmuxd & No & Yes \\ \hline
-/var/run/vpncontrol.sock & No & Yes \\ \hline
 30 other named sockets & No & No \\ \hline
 \end{tabular}
 \caption{UNIX Domain Socket Resources for \texttt{launchd}}
-\label{tab:launchdTcp}
+\label{tab:launchdUnixTab}
 \end{normalsize}
 \end{table} 
 
-Unlike every other process that I looked at, a majority of \texttt{launchd}'s UNIX domain sockets were not \texttt{socketpair} sockets.  In face, \texttt{launchd} had no \texttt{socketpair} endpoints; it only had named UNIX domain sockets.  While the survey results show that \texttt{launchd} had on average thirty-six open UNIX domain sockets, each socket was opened twice, so there were only eighteen different sockets open.  I attempted to fuzz six of these, representing one-third of the open sockets.  I was unable to find sample messages for any of these UNIX domain sockets, so I used the same sample messages from fuzzing the \texttt{launchd} UDP sockets as the seeds for my UNIX domain socket messages.
+Unlike many other processes, a majority of \texttt{launchd}'s UNIX domain sockets were not \texttt{socketpair} sockets.  In fact, \texttt{launchd} had no \texttt{socketpair} endpoints; it only had named UNIX domain sockets.  While the survey results show that \texttt{launchd} had on average thirty-six open UNIX domain sockets, each socket was opened twice, so there were only eighteen different sockets open.  I attempted to fuzz six of these, representing one-third of the open sockets.  I was unable to find sample messages for any of these UNIX domain sockets, so I used the same sample messages from fuzzing the \texttt{launchd} UDP sockets as the seeds for my UNIX domain socket messages.
 
 Every running application that does logging connects to a named socket owned by \texttt{launchd}; this was the first socket that I fuzzed.  \texttt{Spotify}, \texttt{VS Code} and \texttt{mDNSResponder} all had a connection to this socket.  This socket was a datagram UNIX socket, and the only one that I found in my research.  I fuzzed this socket over 500,000 times and was not able to crash \texttt{launchd}.  I had the same result with two stream sockets that worked with remote procedure calls and a VPN.
 
@@ -336,7 +336,7 @@ Random & No & No \\ \hline
 Random & No & No \\ \hline
 \end{tabular}
 \caption{TCP Resources for \texttt{mDNSResponder}}
-\label{tab:mdnsTcp}
+\label{tab:mdnsTcpTab}
 \end{normalsize}
 \end{table} 
 
@@ -355,13 +355,13 @@ According to my survey, \texttt{mDNSResponder} had, on average, one TCP socket l
 62 Random Ports & No & Yes, Fuzzed 6 \\ \hline
 \end{tabular}
 \caption{UDP Resources for \texttt{mDNSResponder}}
-\label{tab:mdnsUdp}
+\label{tab:mdnsUdpTab}
 \end{normalsize}
 \end{table} 
 
-\texttt{mDNSResponder} always has two sockets listening on the mdns port, port number 5353.  This can be done by setting the SO\_REUSEPORT on all of the sockets before binding, and can help load-balance across multiple sockets.  I found two sample messages send to port 5353 by using \textit{Wireshark}, and used these as my seed messages for fuzzing.  Each iteration, one of the two messages was randomly selected and then randomly modified, then sent to the port.  I was unable to cause a crash of \texttt{mDNSResponder} nor could I sense a slowdown in Internet speed from this fuzzing.
+\texttt{mDNSResponder} always has two sockets listening on the mdns port, port number 5353.  This can be done by setting the SO\_REUSEPORT flag on all of the sockets before binding, and can help load-balance across multiple sockets.  I found two sample messages sent to port 5353 by using \textit{Wireshark}, and used these as my seed messages for fuzzing.  Each iteration, one of the two messages was randomly selected and then randomly modified, then sent to the port.  I was unable to cause a crash of \texttt{mDNSResponder} nor could I sense a slowdown in Internet speed from this fuzzing.
 
-I then looked at the other, random UDP ports that mDNSResponder had open.  I could not find any messages for any of these ports, so I used the messages I found for port 5353 to fuzz these ports.  I these random ports, I randomly chose six to fuzz.  I was unable to crash mDNSResponder or have a distinct difference in Internet speed.
+I then looked at the other, random UDP ports that mDNSResponder had open.  I could not find any messages for any of these ports, so I used the messages I found for port 5353 to fuzz these ports.  Since these ports were all random, I randomly chose six to fuzz.  I was unable to crash mDNSResponder nor feel a distinct difference in Internet speed.
 
 \subsection{\texttt{mDNSResponder} UNIX Domain Sockets}
 \label{sec:mdnsUnix}
@@ -375,13 +375,13 @@ I then looked at the other, random UDP ports that mDNSResponder had open.  I cou
 /var/run/mDNSResponder & Yes & Yes \\ \hline
 \end{tabular}
 \caption{UNIX Domain Socket Resources for \texttt{mDNSResponder}}
-\label{tab:mdnsTcp}
+\label{tab:mdnsUnixTab}
 \end{normalsize}
 \end{table} 
 
-As mentioned above, \texttt{mDNSResponder} has over forty UNIX domain sockets open at any one time.  There are four endpoints open within the process, representing four of the total UNIX socket endpoints.  The other forty are all connected to the same named UNIX domain socket.  I fuzzed this named socket using a thirty-two-byte message that I received when I created my own version of this socket.  Even after 500,000 iterations, Internet traffic was not noticably slower and \texttt{mDNSResponder} had not crashed.
+As mentioned above, \texttt{mDNSResponder} has over forty UNIX domain sockets open at any one time.  There are four \texttt{socketpair} endpoints open within the process, representing four of the total UNIX socket endpoints.  The other forty are all connected to the same named UNIX domain socket.  I fuzzed this named socket using a thirty-two-byte message that I received when I created my own version of this socket.  Even after 500,000 iterations, Internet traffic was not noticably slower and \texttt{mDNSResponder} had not crashed.
 
-However, when I created my own instance of the named UNIX socket after deleting the real version, most Internet traffic from my computer failed.  All webpages failed to load, and I could no longer get music from \texttt{Spotify}.  This was essentially a Denial-of-Service attack, where I denied access to most of the rest of the Internet.  The only way to bring back Internet access was to restart the entire machine and let \texttt{DNSResponder} create the real socket again.
+However, when I created my own instance of the named UNIX socket after deleting the real version, most Internet traffic from my computer failed.  All webpages failed to load, and I could no longer get music from \texttt{Spotify}.  This was essentially a Denial-of-Service attack, where I denied access to most of the rest of the Internet.  The only way to bring back Internet access was to restart the entire machine and let \texttt{mDNSResponder} create the real socket again.
 
 \begin{table}
 \centering
