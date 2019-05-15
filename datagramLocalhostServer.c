@@ -2,7 +2,8 @@
  * datagramLocalhostServer.c
  */
 
-// This program creates a datagram Internet socket over localhost
+// This program creates a datagram Internet socket
+// over localhost
 
 #include <sys/socket.h>
 #include <stdio.h>

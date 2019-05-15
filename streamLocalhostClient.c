@@ -2,7 +2,8 @@
  * streamLocalhostClient.c
  */
 
-// This program connects to a stream Internet socket over localhost
+// This program connects to a stream Internet socket
+// over localhost
 
 #include <sys/socket.h>
 #include <stdio.h>
