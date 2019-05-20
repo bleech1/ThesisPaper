@@ -2,7 +2,8 @@
  * datagramUnixServer.c
  */
 
-// This program makes a datagram UNIX domain socket with a name
+// This program makes a datagram UNIX domain socket
+// with a name
 
 #include <sys/socket.h>
 #include <stdio.h>
@@ -26,7 +27,8 @@ int main(int argc, char *argv[])
     struct sockaddr_un addr;
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, socketPath, sizeof(addr.sun_path)-1);
+    int size = sizeof(addr.sun_path);
+    strncpy(addr.sun_path, socketPath, size - 1);
     unlink(socketPath);
 
     // remove the socket if it exists
@@ -41,14 +43,14 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    int readResult = 0;
+    int res = 0;
     char buf[100];
     while (1)
     {
         memset(buf, 0, sizeof(buf));
         // read and print every message sent
-        readResult = recvfrom(sockFd, buf, sizeof(buf), 0, NULL, 0);
-        if (readResult < 0)
+        res = recvfrom(sockFd, buf, sizeof(buf), 0, NULL, 0);
+        if (res < 0)
         {
             perror("recvfrom");
             exit(1);

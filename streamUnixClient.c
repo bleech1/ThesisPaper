@@ -26,12 +26,13 @@ int main(int argc, char *argv[])
     struct sockaddr_un addr;
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, socketPath, sizeof(addr.sun_path)-1);
+    int size = sizeof(addr.sun_path);
+    strncpy(addr.sun_path, socketPath, size - 1);
 
     // connect the socket to the listening socket
-    int size = sizeof(addr);
-    int retVal = connect(sockFd, (struct sockaddr*) &addr, size);
-    if (retVal < 0)
+    size = sizeof(addr);
+    int ret = connect(sockFd, (struct sockaddr*) &addr, size);
+    if (ret < 0)
     {
         perror("connect");
         exit(1);
@@ -46,13 +47,13 @@ int main(int argc, char *argv[])
         perror("read");
         exit(1);
     }
-    retVal = send(sockFd, buf, bytesRead, 0);
-    if (retVal < 0)
+    ret = send(sockFd, buf, bytesRead, 0);
+    if (ret < 0)
     {
         perror("send");
         exit(1);
     }
-    int ret = close(sockFd);
+    ret = close(sockFd);
     if (ret < 0)
     {
         perror("close");

@@ -47,15 +47,15 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    int readResult = 10;
+    int res = 10;
     char buf[100];
     while (1)
     {
         memset(buf, 0, sizeof(buf));
         // accept each connection and read the first 
         // message sent then close
-        readResult = recvfrom(sockFd, buf, sizeof(buf), 0, NULL, 0);
-        if (readResult < 0)
+        res = recvfrom(sockFd, buf, sizeof(buf), 0, NULL, 0);
+        if (res < 0)
         {
             perror("recvfrom");
             exit(1);

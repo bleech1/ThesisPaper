@@ -26,14 +26,15 @@ int main(int argc, char *argv[])
     struct sockaddr_un addr;
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
-    strncpy(addr.sun_path, socketPath, sizeof(addr.sun_path)-1);
+    int size = sizeof(addr.sin_path);
+    strncpy(addr.sun_path, socketPath, size - 1);
     unlink(socketPath);
 
     // remove the socket if it exists
     int unlinkVal = unlink(socketPath);
 
     // bind the socket to the pathname
-    int size = sizeof(addr);
+    size = sizeof(addr);
     int retVal = bind(sockFd, (struct sockaddr*)&addr, size);
     if (retVal < 0)
     {
